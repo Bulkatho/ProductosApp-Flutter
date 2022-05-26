@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+
 import 'package:productos_app/providers/product_form_provider.dart';
 import 'package:productos_app/services/services.dart';
 import 'package:productos_app/ui/input_decorations.dart';
@@ -55,8 +57,19 @@ class _ProductsPageBody extends StatelessWidget {
                   top: 60,
                   right: 30,
                   child: IconButton(
-                    onPressed: () {
-                      //TODO Camara o galeria.
+                    onPressed: () async{
+                      //camara
+                      final ImagePicker picker = ImagePicker();
+                      final XFile? image = await picker.pickImage(
+                        source: ImageSource.camera,
+                        imageQuality: 100
+                      );
+
+                      if(image == null){
+                        return;
+                      }
+                      
+                      productsService.updateSelectedProductImage(image.path);
                     },
                     icon: const Icon(Icons.camera_alt_outlined, size: 40, color: Colors.white),
                   )
@@ -73,10 +86,15 @@ class _ProductsPageBody extends StatelessWidget {
 
       floatingActionButtonLocation: FloatingActionButtonLocation.miniEndFloat,
       floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.save_outlined),
-        onPressed: () async{
+        child: productsService.isSaving
+          ? const CircularProgressIndicator(color: Colors.white)
+          : const Icon(Icons.save_outlined),
+        onPressed: productsService.isSaving
+        ? null
+        : () async{
           if(!productForm.isValidForm()) return;
-
+          final String? imageUrl = await productsService.uploadImage();
+          if(imageUrl != null) productForm.product.picture = imageUrl;
           await productsService.saveOrCreateProduct(productForm.product);
         },
       ),
